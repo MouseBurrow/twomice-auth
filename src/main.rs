@@ -1,7 +1,7 @@
 use crate::db::auth::AuthHandler;
 use crate::db::errors::AuthError;
 use crate::services::password_service::hash_password;
-use actix_web::{get, post, web, web::Json, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use config::Config;
 use serde::Deserialize;
 use sqlx::postgres::PgPoolOptions;
@@ -28,21 +28,17 @@ async fn sign_in(
     let hashed = hash_password(password).unwrap();
 
     match AuthHandler::create_account(&pool, username, hashed.as_str()).await {
-        Ok((user_id, token)) => {
-            return HttpResponse::Ok().json(serde_json::json!({
-                "user_id": user_id,
-                "token": token
-            }));
-        }
+        Ok((user_id, token)) => HttpResponse::Ok().json(serde_json::json!({
+            "user_id": user_id,
+            "token": token
+        })),
         Err(AuthError::UsernameExists) => {
-            return HttpResponse::Unauthorized().body("Account already exists!");
+            HttpResponse::Unauthorized().body("Account already exists!")
         }
         Err(AuthError::Db(err)) => {
-            return HttpResponse::InternalServerError().body(format!("DB error: {:?}", err));
+            HttpResponse::InternalServerError().body(format!("DB error: {:?}", err))
         }
-        Err(_) => {
-            return HttpResponse::InternalServerError().finish();
-        }
+        Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
 
