@@ -43,7 +43,7 @@ AS
 $$
 DECLARE
     existing_id      UUID;
-    token_expiration TIMESTAMP;
+    token_expiration TIMESTAMPTZ;
 BEGIN
     -- Fetch session associated with the token
     SELECT account_id, expires_at
