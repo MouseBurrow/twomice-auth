@@ -1,7 +1,7 @@
 use crate::db::auth::AuthHandler;
 use crate::db::errors::AuthError;
 use crate::services::password_service::hash_password;
-use actix_web::{post, web, web::Json, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, web, web::Json, App, HttpResponse, HttpServer, Responder};
 use config::Config;
 use serde::Deserialize;
 use sqlx::postgres::PgPoolOptions;
@@ -17,6 +17,34 @@ pub struct LoginRequest {
 }
 
 // TEST
+#[post("/sign_in")]
+async fn sign_in(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    body: web::Json<LoginRequest>,
+) -> impl Responder {
+    let username = &body.username;
+    let password = &body.password;
+
+    let hashed = hash_password(password).unwrap();
+
+    match AuthHandler::create_account(&pool, username, hashed.as_str()).await {
+        Ok((user_id, token)) => {
+            return HttpResponse::Ok().json(serde_json::json!({
+                "user_id": user_id,
+                "token": token
+            }));
+        }
+        Err(AuthError::UsernameExists) => {
+            return HttpResponse::Unauthorized().body("Account already exists!");
+        }
+        Err(AuthError::Db(err)) => {
+            return HttpResponse::InternalServerError().body(format!("DB error: {:?}", err));
+        }
+        Err(_) => {
+            return HttpResponse::InternalServerError().finish();
+        }
+    }
+}
 
 #[post("/login")]
 async fn login(
@@ -42,28 +70,7 @@ async fn login(
         }
 
         Err(AuthError::UserNotFound) => {
-            println!("User not found → creating new account");
-
-            let hashed = hash_password(password).unwrap();
-
-            match AuthHandler::create_account(&pool, username, hashed.as_str()).await {
-                Ok((user_id, token)) => {
-                    return HttpResponse::Ok().json(serde_json::json!({
-                        "user_id": user_id,
-                        "token": token
-                    }));
-                }
-                Err(AuthError::UsernameExists) => {
-                    return HttpResponse::Unauthorized().body("Account already exists!");
-                }
-                Err(AuthError::Db(err)) => {
-                    return HttpResponse::InternalServerError()
-                        .body(format!("DB error: {:?}", err));
-                }
-                Err(_) => {
-                    return HttpResponse::InternalServerError().finish();
-                }
-            }
+            return HttpResponse::NotFound().body("User not found");
         }
 
         Err(AuthError::Db(err)) => {
@@ -71,6 +78,22 @@ async fn login(
         }
 
         Err(_) => return HttpResponse::InternalServerError().finish(),
+    }
+}
+
+#[get("/profile")]
+async fn profile(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+) -> impl Responder {
+    let token = match query.get("token") {
+        Some(t) => t.clone(),
+        None => return HttpResponse::Unauthorized().body("Missing token"),
+    };
+
+    match AuthHandler::login_with_token(&pool, &token).await {
+        Ok(user_id) => HttpResponse::Ok().json(user_id),
+        Err(_) => HttpResponse::Unauthorized().body("Invalid token"),
     }
 }
 
@@ -96,6 +119,8 @@ async fn main() -> anyhow::Result<()> {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .service(login)
+            .service(sign_in)
+            .service(profile)
     })
     .bind(addr)?
     .run()
