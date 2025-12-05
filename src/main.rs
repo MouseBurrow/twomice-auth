@@ -1,11 +1,78 @@
-use actix_web::{App, HttpServer};
+use crate::db::auth::AuthHandler;
+use crate::db::errors::AuthError;
+use crate::services::password_service::hash_password;
+use actix_web::{post, web, web::Json, App, HttpResponse, HttpServer, Responder};
 use config::Config;
+use serde::Deserialize;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 
 mod db;
 mod models;
 mod services;
+#[derive(Deserialize)]
+pub struct LoginRequest {
+    pub username: String,
+    pub password: String,
+}
+
+// TEST
+
+#[post("/login")]
+async fn login(
+    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
+    body: web::Json<LoginRequest>,
+) -> impl Responder {
+    let username = &body.username;
+    let password = &body.password;
+
+    match AuthHandler::login_account(&pool, username, password).await {
+        Ok((user_id, token)) => {
+            println!("Login attempt successful!");
+            println!("User ID : {}", user_id);
+            println!("Token   : {}", token);
+
+            HttpResponse::Ok().json(serde_json::json!({
+                "user_id": user_id,
+                "token": token
+            }))
+        }
+        Err(AuthError::InvalidPassword) => {
+            return HttpResponse::Unauthorized().body("Invalid password");
+        }
+
+        Err(AuthError::UserNotFound) => {
+            println!("User not found → creating new account");
+
+            let hashed = hash_password(password).unwrap();
+
+            match AuthHandler::create_account(&pool, username, hashed.as_str()).await {
+                Ok((user_id, token)) => {
+                    return HttpResponse::Ok().json(serde_json::json!({
+                        "user_id": user_id,
+                        "token": token
+                    }));
+                }
+                Err(AuthError::UsernameExists) => {
+                    return HttpResponse::Unauthorized().body("Account already exists!");
+                }
+                Err(AuthError::Db(err)) => {
+                    return HttpResponse::InternalServerError()
+                        .body(format!("DB error: {:?}", err));
+                }
+                Err(_) => {
+                    return HttpResponse::InternalServerError().finish();
+                }
+            }
+        }
+
+        Err(AuthError::Db(err)) => {
+            return HttpResponse::InternalServerError().body(format!("Database error: {:?}", err));
+        }
+
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    }
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -24,56 +91,15 @@ async fn main() -> anyhow::Result<()> {
     let port = env::var("PORT")?;
     let addr = format!("0.0.0.0:{}", port);
     println!("Starting Gateway at http://{}", addr);
-    HttpServer::new(App::new)
-        .bind(addr)?
-        .run()
-        .await
-        .expect("Could not connect to network");
+
+    HttpServer::new(move || {
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .service(login)
+    })
+    .bind(addr)?
+    .run()
+    .await?;
 
     Ok(())
-
-    // TEST
-
-    // let username = "newShrimp";
-    // let password = "myTestPassword";
-    // let password_hash = hash_password(password).unwrap();
-    //
-    // match AuthHandler::login_account(&pool, username, password).await {
-    //     Ok((user_id, token)) => {
-    //         println!("Login attempt successful!");
-    //         println!("User ID : {}", user_id);
-    //         println!("Token   : {}", token);
-    //     }
-    //     Err(e) => match e {
-    //         AuthError::InvalidPassword => {
-    //             println!("Invalid password");
-    //         }
-    //         AuthError::UserNotFound => {
-    //             println!("User with that name not found, creating a new account");
-    //
-    //             match AuthHandler::create_account(&pool, username, password_hash.as_str()).await {
-    //                 Ok((user_id, token)) => {
-    //                     println!("Account created successfully!");
-    //                     println!("User ID : {}", user_id);
-    //                     println!("Token   : {}", token);
-    //                 }
-    //                 Err(e) => match e {
-    //                     AuthError::UsernameExists => {
-    //                         println!("Account already exists!");
-    //                     }
-    //                     AuthError::Db(err) => {
-    //                         println!("Unexpected database error: {}", err);
-    //                     }
-    //                     _ => (),
-    //                 },
-    //             }
-    //         }
-    //         AuthError::Db(err) => {
-    //             println!("Unexpected database error: {}", err);
-    //         }
-    //         _ => (),
-    //     },
-    // }
-
-    // Ok(())
 }
