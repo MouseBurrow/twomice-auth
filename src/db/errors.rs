@@ -7,8 +7,3 @@ pub enum AuthError {
     InvalidPassword,
     Db(sqlx::Error),
 }
-
-pub enum PostError {
-    UserNotFound,
-    Db(sqlx::Error),
-}
