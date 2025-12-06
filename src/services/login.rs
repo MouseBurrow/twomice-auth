@@ -25,7 +25,7 @@ pub async fn login(
         })),
         Err(AuthError::InvalidPassword) => HttpResponse::Unauthorized().body("Invalid password"),
         Err(AuthError::UserNotFound) => HttpResponse::NotFound().body("User not found"),
-        Err(AuthError::Db(err)) => {
+        Err(AuthError::Unexpected(err)) => {
             HttpResponse::InternalServerError().body(format!("Database error: {:?}", err))
         }
         Err(_) => HttpResponse::InternalServerError().finish(),
@@ -50,7 +50,7 @@ pub async fn sign_in(
         Err(AuthError::UsernameExists) => {
             HttpResponse::Unauthorized().body("Account already exists!")
         }
-        Err(AuthError::Db(err)) => {
+        Err(AuthError::Unexpected(err)) => {
             HttpResponse::InternalServerError().body(format!("DB error: {:?}", err))
         }
         Err(_) => HttpResponse::InternalServerError().finish(),

@@ -26,13 +26,11 @@ impl AuthHandler {
         password_hash: &str,
     ) -> Result<(Uuid, String), AuthError> {
         db_call!(
-            pool   = pool,
-            query  = sqlx::query_as(r#"SELECT account_id, session_token FROM create_account($1, $2)"#),
-            binds  = [username, password_hash],
-            errors = {
-                "23505" => AuthError::UsernameExists
-            },
-            fallback = AuthError::Db
+            pool = pool,
+            query =
+                sqlx::query_as(r#"SELECT account_id, session_token FROM create_account($1, $2)"#),
+            binds = [username, password_hash],
+            error = AuthError
         )
     }
 
@@ -56,13 +54,10 @@ impl AuthHandler {
         password: &str,
     ) -> Result<(Uuid, String), AuthError> {
         let stored_hash: String = db_call!(
-            pool   = pool,
-            query  = sqlx::query_scalar(r#"SELECT get_password_hash($1)"#),
-            binds  = [username],
-            errors = {
-                "GPH-000" => AuthError::UserNotFound
-            },
-            fallback = AuthError::Db
+            pool = pool,
+            query = sqlx::query_scalar(r#"SELECT get_password_hash($1)"#),
+            binds = [username],
+            error = AuthError
         )?;
 
         if verify_password(password, stored_hash).is_err() {
@@ -73,14 +68,14 @@ impl AuthHandler {
             pool = pool,
             query = sqlx::query_scalar(r#"SELECT id FROM accounts WHERE username=$1"#),
             binds = [username],
-            fallback = AuthError::Db
+            error = AuthError
         )?;
 
         let session_token: String = db_call!(
             pool = pool,
             query = sqlx::query_scalar(r#"SELECT create_session($1)"#),
             binds = [user_id],
-            fallback = AuthError::Db
+            error = AuthError
         )?;
 
         Ok((user_id, session_token))
@@ -102,7 +97,7 @@ impl AuthHandler {
             pool = pool,
             query = sqlx::query_scalar(r#"SELECT logout_session($1)"#),
             binds = [session_token],
-            fallback = AuthError::Db
+            error = AuthError
         )
     }
 
@@ -125,7 +120,7 @@ impl AuthHandler {
             pool = pool,
             query = sqlx::query_scalar(r#"SELECT FROM validate_token($1)"#),
             binds = [session_token],
-            fallback = AuthError::Db
+            error = AuthError
         )
     }
 }
