@@ -61,19 +61,12 @@ async fn login(
                 "token": token
             }))
         }
-        Err(AuthError::InvalidPassword) => {
-            return HttpResponse::Unauthorized().body("Invalid password");
-        }
-
-        Err(AuthError::UserNotFound) => {
-            return HttpResponse::NotFound().body("User not found");
-        }
-
+        Err(AuthError::InvalidPassword) => HttpResponse::Unauthorized().body("Invalid password"),
+        Err(AuthError::UserNotFound) => HttpResponse::NotFound().body("User not found"),
         Err(AuthError::Db(err)) => {
-            return HttpResponse::InternalServerError().body(format!("Database error: {:?}", err));
+            HttpResponse::InternalServerError().body(format!("Database error: {:?}", err))
         }
-
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
 
