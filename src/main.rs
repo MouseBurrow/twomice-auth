@@ -1,9 +1,9 @@
-use crate::services::login::{login, sign_in};
+use crate::routes::login::{login, sign_in};
 use config::launch_service;
 
 mod db;
 mod models;
-mod services;
+mod routes;
 mod utils;
 
 #[tokio::main]
