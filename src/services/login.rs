@@ -10,7 +10,7 @@ struct LoginRequest {
     pub password: String,
 }
 
-#[post("/auth/login")]
+#[post("login")]
 pub async fn login(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     body: web::Json<LoginRequest>,
@@ -32,7 +32,7 @@ pub async fn login(
     }
 }
 
-#[post("/auth/sign_in")]
+#[post("sign_in")]
 pub async fn sign_in(
     pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
     body: web::Json<LoginRequest>,
