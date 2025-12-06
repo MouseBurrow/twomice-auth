@@ -36,32 +36,6 @@ impl AuthHandler {
         )
     }
 
-    /// Tries to login an account in the database using a session token
-    ///
-    /// # Arguments
-    /// * `pool` - A reference to a database connection pool
-    /// * `token` - The session token to log in with
-    ///
-    /// # Returns
-    /// The associated account ID.
-    ///
-    /// # Errors
-    /// * `AuthError::TokenInvalid` - If the session token is invalid.
-    /// * `AuthError::SessionExpired` - If the session token has expired.
-    /// * `AuthError::Db` - If there was an unexpected error!
-    pub async fn login_with_token(pool: &PgPool, token: &str) -> Result<Uuid, AuthError> {
-        db_call!(
-            pool   = pool,
-            query  = sqlx::query_scalar(r#"SELECT login_with_token($1)"#),
-            binds  = [token],
-            errors = {
-                "P1001" => AuthError::TokenInvalid,
-                "P1002" => AuthError::SessionExpired
-            },
-            fallback = AuthError::Db
-        )
-    }
-
     /// Tries to login an account in the database.
     ///
     /// # Arguments
@@ -127,6 +101,29 @@ impl AuthHandler {
         db_call!(
             pool = pool,
             query = sqlx::query_scalar(r#"SELECT logout_session($1)"#),
+            binds = [session_token],
+            fallback = AuthError::Db
+        )
+    }
+
+    /// Validates a user's session token.
+    ///
+    /// # Parameters
+    /// * `pool` - A reference to the database connection pool
+    /// * `session_token` - The user's session token
+    ///
+    /// # Returns
+    /// * The user id associated with the session. NULL if it doesn't exist.
+    ///
+    /// # Errors
+    /// * `AuthError::Db` - If there was an unexpected error!
+    pub async fn validate_token(
+        pool: &PgPool,
+        session_token: String,
+    ) -> Result<Option<Uuid>, AuthError> {
+        db_call!(
+            pool = pool,
+            query = sqlx::query_scalar(r#"SELECT FROM validate_token($1)"#),
             binds = [session_token],
             fallback = AuthError::Db
         )

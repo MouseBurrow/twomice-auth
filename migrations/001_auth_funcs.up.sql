@@ -34,43 +34,6 @@ EXCEPTION
 END;
 $$;
 
-CREATE FUNCTION login_with_token(
-    p_session_token TEXT
-)
-    RETURNS UUID
-    LANGUAGE plpgsql
-AS
-$$
-DECLARE
-    existing_id      UUID;
-    token_expiration TIMESTAMPTZ;
-BEGIN
-    -- Fetch session associated with the token
-    SELECT account_id, expires_at
-    INTO existing_id, token_expiration
-    FROM sessions
-    WHERE session_token = p_session_token;
-
-    -- If not found, token does not exist at all
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'Invalid session token' USING ERRCODE = 'P1001';
-    END IF;
-
-    -- The error will be different if it is expired!
-    IF token_expiration <= NOW() THEN
-        RAISE EXCEPTION 'Expired session token' USING ERRCODE = 'P1002';
-    END IF;
-
-    -- Slide the expiration, extend expiration on use
-    UPDATE sessions
-    SET last_used_at = NOW(),
-        expires_at   = NOW() + INTERVAL '30 days'
-    WHERE session_token = p_session_token;
-
-    RETURN existing_id;
-END;
-$$;
-
 CREATE FUNCTION get_password_hash(p_username TEXT) RETURNS TEXT
     LANGUAGE plpgsql AS
 $$
@@ -83,7 +46,7 @@ BEGIN
     WHERE username = p_username;
 
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'Invalid username' USING ERRCODE = 'P2001';
+        RAISE EXCEPTION 'Invalid username' USING ERRCODE = 'GPH-000';
     END IF;
 
     RETURN stored_hash;
@@ -118,5 +81,28 @@ BEGIN
     DELETE FROM sessions WHERE session_token = p_session_token RETURNING 1 INTO deleted_count;
 
     RETURN deleted_count IS NOT NULL;
+END;
+$$;
+
+CREATE FUNCTION validate_token(p_session_token TEXT)
+    RETURNS UUID
+    LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    existing_account_id UUID;
+BEGIN
+    SELECT account_id INTO existing_account_id FROM sessions WHERE session_token = p_session_token;
+
+    IF NOT FOUND THEN
+        RETURN NULL;
+    END IF;
+
+    UPDATE sessions
+    SET last_used_at = NOW(),
+        expires_at   = (NOW() + INTERVAL '30 days')
+    WHERE session_token = p_session_token;
+
+    RETURN existing_account_id;
 END;
 $$;
