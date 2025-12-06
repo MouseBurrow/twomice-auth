@@ -1,5 +1,5 @@
 use crate::db::errors::AuthError;
-use crate::services::password_service::verify_password;
+use crate::utils::password_utils::verify_password;
 use burrow_db::db_call;
 use sqlx::PgPool;
 use uuid::Uuid;
