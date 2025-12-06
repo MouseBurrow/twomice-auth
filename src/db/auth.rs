@@ -60,7 +60,7 @@ impl AuthHandler {
             query  = sqlx::query_scalar(r#"SELECT get_password_hash($1)"#),
             binds  = [username],
             errors = {
-                "P2001" => AuthError::UserNotFound
+                "GPH-000" => AuthError::UserNotFound
             },
             fallback = AuthError::Db
         )?;
