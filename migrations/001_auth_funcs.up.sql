@@ -46,7 +46,7 @@ BEGIN
     WHERE username = p_username;
 
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'Invalid username' USING ERRCODE = 'GPH-000';
+        RAISE EXCEPTION 'Invalid username' USING ERRCODE = 'P0000';
     END IF;
 
     RETURN stored_hash;
