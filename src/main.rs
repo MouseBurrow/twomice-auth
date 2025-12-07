@@ -8,7 +8,7 @@ mod utils;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     launch_service!(
-        service: "AUTH",
+        service: "auth",
         routes: [login, sign_in]
     );
     Ok(())
