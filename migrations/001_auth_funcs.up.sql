@@ -1,4 +1,4 @@
-CREATE FUNCTION create_account(
+CREATE OR REPLACE FUNCTION create_account(
     p_username TEXT,
     p_password_hash TEXT
 )
@@ -34,7 +34,7 @@ EXCEPTION
 END;
 $$;
 
-CREATE FUNCTION get_password_hash(p_username TEXT) RETURNS TEXT
+CREATE OR REPLACE FUNCTION get_password_hash(p_username TEXT) RETURNS TEXT
     LANGUAGE plpgsql AS
 $$
 DECLARE
@@ -53,7 +53,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION create_session(p_account_id UUID)
+CREATE OR REPLACE FUNCTION create_session(p_account_id UUID)
     RETURNS TEXT
     LANGUAGE plpgsql
 AS
@@ -70,7 +70,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION logout_session(p_session_token TEXT)
+CREATE OR REPLACE FUNCTION logout_session(p_session_token TEXT)
     RETURNS BOOLEAN
     LANGUAGE plpgsql
 AS
@@ -84,7 +84,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION validate_token(p_session_token TEXT)
+`CREATE OR REPLACE FUNCTION validate_token(p_session_token TEXT)
     RETURNS UUID
     LANGUAGE plpgsql
 AS
@@ -92,7 +92,11 @@ $$
 DECLARE
     existing_account_id UUID;
 BEGIN
-    SELECT account_id INTO existing_account_id FROM sessions WHERE session_token = p_session_token;
+    SELECT account_id
+    INTO existing_account_id
+    FROM sessions
+    WHERE session_token = p_session_token
+      AND expires_at > NOW();
 
     IF NOT FOUND THEN
         RETURN NULL;
@@ -105,4 +109,4 @@ BEGIN
 
     RETURN existing_account_id;
 END;
-$$;
+$$;`
