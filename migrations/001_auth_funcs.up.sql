@@ -2,11 +2,7 @@ CREATE OR REPLACE FUNCTION create_account(
     p_username TEXT,
     p_password_hash TEXT
 )
-    RETURNS TABLE
-            (
-                account_id    UUID,
-                session_token TEXT
-            )
+    RETURNS TEXT
     LANGUAGE plpgsql
 AS
 $$
@@ -26,7 +22,7 @@ BEGIN
     INSERT INTO sessions (account_id, session_token)
     VALUES (new_account_id, new_session_token);
 
-    RETURN QUERY SELECT new_account_id, new_session_token;
+    RETURN new_session_token;
 EXCEPTION
     -- Unique Violation error code is 23505
     WHEN unique_violation THEN
