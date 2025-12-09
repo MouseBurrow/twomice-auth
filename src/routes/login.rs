@@ -6,13 +6,13 @@ use config::app_data::AppData;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-struct LoginRequest {
+struct LoginBody {
     pub username: String,
     pub password: String,
 }
 
 #[post("/login")]
-pub async fn login(app: web::Data<AppData>, body: web::Json<LoginRequest>) -> impl Responder {
+pub async fn login(app: web::Data<AppData>, body: web::Json<LoginBody>) -> impl Responder {
     let username = &body.username;
     let password = &body.password;
 
@@ -30,7 +30,7 @@ pub async fn login(app: web::Data<AppData>, body: web::Json<LoginRequest>) -> im
 }
 
 #[post("/sign_in")]
-pub async fn sign_in(app: web::Data<AppData>, body: web::Json<LoginRequest>) -> impl Responder {
+pub async fn sign_in(app: web::Data<AppData>, body: web::Json<LoginBody>) -> impl Responder {
     let username = &body.username;
     let password = &body.password;
 
