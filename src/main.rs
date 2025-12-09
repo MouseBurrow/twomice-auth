@@ -1,4 +1,5 @@
 use crate::routes::login::{login, sign_in};
+use crate::routes::validate::validate;
 use config::launch_service;
 
 mod db;
@@ -9,7 +10,7 @@ mod utils;
 async fn main() -> anyhow::Result<()> {
     launch_service!(
         service: "auth",
-        routes: [login, sign_in]
+        routes: [validate, login, sign_in]
     );
     Ok(())
 }

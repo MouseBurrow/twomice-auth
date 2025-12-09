@@ -2,6 +2,7 @@ use crate::db::auth::AuthHandler;
 use crate::db::errors::AuthError;
 use crate::utils::password_utils::hash_password;
 use actix_web::{post, web, HttpResponse, Responder};
+use config::app_data::AppData;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -10,17 +11,13 @@ struct LoginRequest {
     pub password: String,
 }
 
-#[post("/auth/login")]
-pub async fn login(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    body: web::Json<LoginRequest>,
-) -> impl Responder {
+#[post("/login")]
+pub async fn login(app: web::Data<AppData>, body: web::Json<LoginRequest>) -> impl Responder {
     let username = &body.username;
     let password = &body.password;
 
-    match AuthHandler::login_account(&pool, username, password).await {
-        Ok((user_id, token)) => HttpResponse::Ok().json(serde_json::json!({
-            "user_id": user_id,
+    match AuthHandler::login_account(&app.pool, username, password).await {
+        Ok(token) => HttpResponse::Ok().json(serde_json::json!({
             "token": token
         })),
         Err(AuthError::InvalidPassword) => HttpResponse::Unauthorized().body("Invalid password"),
@@ -32,19 +29,15 @@ pub async fn login(
     }
 }
 
-#[post("/auth/sign_in")]
-pub async fn sign_in(
-    pool: web::Data<sqlx::Pool<sqlx::Postgres>>,
-    body: web::Json<LoginRequest>,
-) -> impl Responder {
+#[post("/sign_in")]
+pub async fn sign_in(app: web::Data<AppData>, body: web::Json<LoginRequest>) -> impl Responder {
     let username = &body.username;
     let password = &body.password;
 
     let hashed = hash_password(password).unwrap();
 
-    match AuthHandler::create_account(&pool, username, hashed.as_str()).await {
-        Ok((user_id, token)) => HttpResponse::Ok().json(serde_json::json!({
-            "user_id": user_id,
+    match AuthHandler::create_account(&app.pool, username, hashed.as_str()).await {
+        Ok(token) => HttpResponse::Ok().json(serde_json::json!({
             "token": token
         })),
         Err(AuthError::UsernameExists) => {

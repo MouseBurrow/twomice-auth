@@ -15,7 +15,7 @@ impl AuthHandler {
     /// * `password_hash` - The password hash of the new account.
     ///
     /// # Returns
-    /// A tuple containing the account ID and session token.
+    /// The newly created session token.
     ///
     /// # Errors
     /// * `AuthError::UsernameExists` - An error indicating that the account with the given username already exists.
@@ -24,11 +24,10 @@ impl AuthHandler {
         pool: &PgPool,
         username: &str,
         password_hash: &str,
-    ) -> Result<(Uuid, String), AuthError> {
+    ) -> Result<String, AuthError> {
         db_call!(
             pool = pool,
-            query =
-                sqlx::query_as(r#"SELECT account_id, session_token FROM create_account($1, $2)"#),
+            query = sqlx::query_scalar(r#"SELECT session_token FROM create_account($1, $2)"#),
             binds = [username, password_hash],
             error = AuthError
         )
@@ -42,7 +41,7 @@ impl AuthHandler {
     /// * `password` - The password of the account to login
     ///
     /// # Returns
-    /// A tuple containing the account ID and session token.
+    /// The newly created session token.
     ///
     /// # Errors
     /// * `AuthError::UserNotFound` - If the username does not exist in the database.
@@ -52,7 +51,7 @@ impl AuthHandler {
         pool: &PgPool,
         username: &str,
         password: &str,
-    ) -> Result<(Uuid, String), AuthError> {
+    ) -> Result<String, AuthError> {
         let stored_hash: String = db_call!(
             pool = pool,
             query = sqlx::query_scalar(r#"SELECT get_password_hash($1)"#),
@@ -78,7 +77,7 @@ impl AuthHandler {
             error = AuthError
         )?;
 
-        Ok((user_id, session_token))
+        Ok(session_token)
     }
 
     /// Logout a user's session.
@@ -114,11 +113,11 @@ impl AuthHandler {
     /// * `AuthError::Db` - If there was an unexpected error!
     pub async fn validate_token(
         pool: &PgPool,
-        session_token: String,
+        session_token: &str,
     ) -> Result<Option<Uuid>, AuthError> {
         db_call!(
             pool = pool,
-            query = sqlx::query_scalar(r#"SELECT FROM validate_token($1)"#),
+            query = sqlx::query_scalar(r#"SELECT validate_token($1)"#),
             binds = [session_token],
             error = AuthError
         )
