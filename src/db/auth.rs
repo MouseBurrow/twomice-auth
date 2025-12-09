@@ -113,7 +113,7 @@ impl AuthHandler {
     /// * `AuthError::Db` - If there was an unexpected error!
     pub async fn validate_token(
         pool: &PgPool,
-        session_token: &str,
+        session_token: String,
     ) -> Result<Option<Uuid>, AuthError> {
         db_call!(
             pool = pool,

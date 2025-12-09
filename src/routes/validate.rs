@@ -1,6 +1,7 @@
 use crate::db::auth::AuthHandler;
-use actix_web::{post, web, HttpRequest, HttpResponse};
+use actix_web::{post, web, HttpResponse};
 use config::app_data::AppData;
+use custom_headers::session_token::SessionToken;
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -10,20 +11,8 @@ struct ValidateResponse {
 }
 
 #[post("/validate")]
-pub async fn validate(app: web::Data<AppData>, req: HttpRequest) -> HttpResponse {
-    let token = match req.headers().get("X-Session-Token") {
-        Some(val) => match val.to_str() {
-            Ok(s) => s,
-            Err(_) => {
-                return HttpResponse::BadRequest().finish();
-            }
-        },
-        None => {
-            return HttpResponse::Ok().json(ValidateResponse { user_id: None });
-        }
-    };
-
-    match AuthHandler::validate_token(&app.pool, token).await {
+pub async fn validate(app: web::Data<AppData>, session_token: SessionToken) -> HttpResponse {
+    match AuthHandler::validate_token(&app.pool, session_token.into()).await {
         Ok(result) => HttpResponse::Ok().json(ValidateResponse { user_id: result }),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
