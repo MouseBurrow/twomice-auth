@@ -105,4 +105,4 @@ BEGIN
 
     RETURN existing_account_id;
 END;
-$$;`
+$$;
