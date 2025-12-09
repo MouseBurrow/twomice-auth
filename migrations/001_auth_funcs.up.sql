@@ -80,7 +80,7 @@ BEGIN
 END;
 $$;
 
-`CREATE OR REPLACE FUNCTION validate_token(p_session_token TEXT)
+CREATE OR REPLACE FUNCTION validate_token(p_session_token TEXT)
     RETURNS UUID
     LANGUAGE plpgsql
 AS
