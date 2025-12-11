@@ -1,9 +1,11 @@
-use crate::db::auth::AuthHandler;
-use crate::db::errors::AuthError;
-use crate::utils::password_utils::hash_password;
-use actix_web::{post, web, HttpResponse, Responder};
+use crate::utils::errors::AuthError;
+use crate::utils::password_utils::verify_password;
+use actix_web::{post, web, HttpResponse};
+use burrow_db::db_call;
 use config::app_data::AppData;
 use serde::Deserialize;
+use sqlx::PgPool;
+use uuid::Uuid;
 
 #[derive(Deserialize)]
 struct LoginBody {
@@ -11,41 +13,50 @@ struct LoginBody {
     pub password: String,
 }
 
+pub async fn login_account(
+    pool: &PgPool,
+    username: &str,
+    password: &str,
+) -> Result<String, AuthError> {
+    let stored_hash: String = db_call!(
+        pool = pool,
+        query = sqlx::query_scalar(r#"SELECT get_password_hash($1)"#),
+        binds = [username],
+        error = AuthError
+    )?;
+
+    if verify_password(password, stored_hash).is_err() {
+        return Err(AuthError::InvalidPassword);
+    }
+
+    let user_id: Uuid = db_call!(
+        pool = pool,
+        query = sqlx::query_scalar(r#"SELECT id FROM accounts WHERE username=$1"#),
+        binds = [username],
+        error = AuthError
+    )?;
+
+    let session_token: String = db_call!(
+        pool = pool,
+        query = sqlx::query_scalar(r#"SELECT create_session($1)"#),
+        binds = [user_id],
+        error = AuthError
+    )?;
+
+    Ok(session_token)
+}
+
 #[post("/login")]
-pub async fn login(app: web::Data<AppData>, body: web::Json<LoginBody>) -> impl Responder {
+pub async fn login(app: web::Data<AppData>, body: web::Json<LoginBody>) -> HttpResponse {
     let username = &body.username;
     let password = &body.password;
 
-    match AuthHandler::login_account(&app.pool, username, password).await {
+    match login_account(&app.pool, username, password).await {
         Ok(token) => HttpResponse::Ok().json(serde_json::json!({
-            "token": token
+            "session_token": token
         })),
         Err(AuthError::InvalidPassword) => HttpResponse::Unauthorized().body("Invalid password"),
         Err(AuthError::UserNotFound) => HttpResponse::NotFound().body("User not found"),
-        Err(AuthError::Unexpected(err)) => {
-            HttpResponse::InternalServerError().body(format!("Database error: {:?}", err))
-        }
-        Err(_) => HttpResponse::InternalServerError().finish(),
-    }
-}
-
-#[post("/sign_in")]
-pub async fn sign_in(app: web::Data<AppData>, body: web::Json<LoginBody>) -> impl Responder {
-    let username = &body.username;
-    let password = &body.password;
-
-    let hashed = hash_password(password).unwrap();
-
-    match AuthHandler::create_account(&app.pool, username, hashed.as_str()).await {
-        Ok(token) => HttpResponse::Ok().json(serde_json::json!({
-            "token": token
-        })),
-        Err(AuthError::UsernameExists) => {
-            HttpResponse::Unauthorized().body("Account already exists!")
-        }
-        Err(AuthError::Unexpected(err)) => {
-            HttpResponse::InternalServerError().body(format!("DB error: {:?}", err))
-        }
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }

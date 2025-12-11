@@ -1,8 +1,8 @@
-use crate::routes::login::{login, sign_in};
+use crate::routes::login::login;
+use crate::routes::sign_in::sign_in;
 use crate::routes::validate::validate;
 use config::launch_service;
 
-mod db;
 mod routes;
 mod utils;
 
