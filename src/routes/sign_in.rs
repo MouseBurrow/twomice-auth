@@ -20,7 +20,7 @@ pub async fn sign_in(app: web::Data<AppData>, body: web::Json<SignBody>) -> impl
 
     let result: Result<String, AuthError> = db_call!(
         pool = &app.pool,
-        query = sqlx::query_scalar(r#"SELECT session_token FROM create_account($1, $2)"#),
+        query = sqlx::query_scalar(r#"SELECT create_account($1, $2)"#),
         binds = [username, password_hash],
         error = AuthError
     );
