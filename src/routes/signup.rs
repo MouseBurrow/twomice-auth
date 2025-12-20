@@ -1,7 +1,7 @@
 use crate::utils::errors::AuthError;
 use crate::utils::password_utils::hash_password;
 use actix_web::cookie::{Cookie, SameSite};
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{post, web, HttpResponse};
 use config::app_data::AppData;
 use config::app_envs::AppEnvs;
 use easy_db::db_call;
@@ -13,8 +13,8 @@ struct SignBody {
     pub password: String,
 }
 
-#[post("/sign_in")]
-pub async fn sign_in(app: web::Data<AppData>, body: web::Json<SignBody>) -> impl Responder {
+#[post("/signup")]
+pub async fn signup(app: web::Data<AppData>, body: web::Json<SignBody>) -> HttpResponse {
     let username = &body.username;
     let password = &body.password;
 
