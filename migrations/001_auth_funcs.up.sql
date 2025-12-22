@@ -67,16 +67,19 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION logout_session(p_session_token TEXT)
-    RETURNS BOOLEAN
+    RETURNS VOID
     LANGUAGE plpgsql
 AS
 $$
-DECLARE
-    deleted_count INT;
 BEGIN
-    DELETE FROM sessions WHERE session_token = p_session_token RETURNING 1 INTO deleted_count;
+    DELETE
+    FROM sessions
+    WHERE session_token = p_session_token;
 
-    RETURN deleted_count IS NOT NULL;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Session not found'
+            USING ERRCODE = 'P0002';
+    END IF;
 END;
 $$;
 
@@ -104,5 +107,28 @@ BEGIN
     WHERE session_token = p_session_token;
 
     RETURN existing_account_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION get_account_info(p_user_id UUID)
+    RETURNS TABLE
+            (
+                username   VARCHAR(50),
+                is_admin   BOOLEAN,
+                created_at TIMESTAMPTZ,
+                updated_at TIMESTAMPTZ
+            )
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    IF NOT EXISTS (SELECT 1
+                   FROM accounts
+                   WHERE id = p_user_id) THEN
+        RAISE EXCEPTION 'Account not found'
+            USING ERRCODE = 'P0001';
+    END IF;
+
+    RETURN QUERY SELECT a.username, a.is_admin, a.created_at, a.updated_at FROM accounts as a WHERE a.id = p_user_id;
 END;
 $$;

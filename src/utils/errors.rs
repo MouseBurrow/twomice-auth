@@ -4,8 +4,8 @@ define_errors!(
     AuthError {
         UsernameExists => "23505",
         UserNotFound => "P0000",
-        TokenInvalid => "P0001",
-        SessionExpired => "P0002",
+        AccountNotFound => "P0001",
+        SessionNotFound => "P0002",
         InvalidPassword => "NONE"
     }
 );

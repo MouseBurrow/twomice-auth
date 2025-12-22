@@ -58,6 +58,7 @@ pub async fn login(app: web::Data<AppData>, body: web::Json<LoginBody>) -> HttpR
                 .secure(*app_env != AppEnvs::DEV)
                 .same_site(SameSite::Lax)
                 .path("/")
+                .max_age(time::Duration::days(30))
                 .finish();
 
             HttpResponse::Ok().cookie(cookie).json(serde_json::json!({
