@@ -2,15 +2,17 @@
 FROM rust:1.91 AS builder
 WORKDIR /app
 
-# Copy workspace definition first (better caching)
+# Copy manifests and shared crates
 COPY Cargo.toml Cargo.lock ./
-COPY migrator migrator
-COPY services services
-COPY shared shared
-#COPY services/auth services/auth
+COPY services/auth/ services/auth/
+COPY shared/ shared/
 
-# Build only this service
-RUN cargo build --release -p auth
+# Build using cached target, copy binary to real FS
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/app/target \
+    cargo build --release -p auth && \
+    cp target/release/auth /app/auth
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -22,7 +24,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY --from=builder /app/target/release/auth /app/auth
+COPY --from=builder /app/auth /app/auth
 
-#EXPOSE 8080
 CMD ["/app/auth"]
