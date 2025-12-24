@@ -1,5 +1,5 @@
-use crate::utils::errors::AuthError;
-use crate::utils::password_utils::hash_password;
+use crate::errors::AuthError;
+use crate::password_utils::hash_password;
 use actix_web::cookie::{Cookie, SameSite};
 use actix_web::{post, web, HttpResponse};
 use config::app_data::AppData;
@@ -14,40 +14,27 @@ struct SignBody {
 }
 
 #[post("/signup")]
-pub async fn signup(app: web::Data<AppData>, body: web::Json<SignBody>) -> HttpResponse {
-    let username = &body.username;
-    let password = &body.password;
+pub async fn signup(
+    app: web::Data<AppData>,
+    body: web::Json<SignBody>,
+) -> Result<HttpResponse, AuthError> {
+    let password_hash = hash_password(&body.password).map_err(|_| AuthError::PasswordHashFailed)?;
 
-    let password_hash = match hash_password(password) {
-        Ok(h) => h,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
-
-    let result: Result<String, AuthError> = db_call!(
+    let token: String = db_call!(
         pool = &app.pool,
         query = ONE COLUMN "SELECT create_account($1, $2)",
-        binds = [username, password_hash]
-    );
+        binds = [&body.username, password_hash]
+    )?;
 
-    let app_env = &app.config.app_env;
-    match result {
-        Ok(token) => {
-            let cookie = Cookie::build("session_token", token)
-                .http_only(true)
-                .secure(*app_env != AppEnvs::DEV)
-                .same_site(SameSite::Lax)
-                .path("/")
-                .max_age(time::Duration::days(30))
-                .finish();
+    let cookie = Cookie::build("session_token", token)
+        .http_only(true)
+        .secure(app.config.app_env != AppEnvs::DEV)
+        .same_site(SameSite::Lax)
+        .path("/")
+        .max_age(time::Duration::days(30))
+        .finish();
 
-            HttpResponse::Ok().cookie(cookie).json(serde_json::json!({
-                "ok": true
-            }))
-        }
-        Err(AuthError::UsernameExists) => HttpResponse::Conflict().json(serde_json::json!({
-            "error": "username_exists",
-            "message": "Account already exists"
-        })),
-        Err(_) => HttpResponse::InternalServerError().finish(),
-    }
+    Ok(HttpResponse::Ok()
+        .cookie(cookie)
+        .json(serde_json::json!({ "ok": true })))
 }

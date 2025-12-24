@@ -5,8 +5,9 @@ use crate::routes::signup::signup;
 use crate::routes::validate::validate;
 use config::launch_service;
 
+pub(crate) mod errors;
+pub(crate) mod password_utils;
 mod routes;
-mod utils;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

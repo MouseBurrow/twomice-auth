@@ -1,4 +1,4 @@
-use crate::utils::errors::AuthError;
+use crate::errors::AuthError;
 use actix_web::{get, web, HttpResponse};
 use chrono::{DateTime, Utc};
 use config::app_data::AppData;
@@ -16,19 +16,12 @@ struct AccountInfo {
 }
 
 #[get("/account")]
-pub async fn account(app: web::Data<AppData>, user_id: UserId) -> HttpResponse {
-    let result: Result<AccountInfo, AuthError> = db_call!(
+pub async fn account(app: web::Data<AppData>, user_id: UserId) -> Result<HttpResponse, AuthError> {
+    let account_info: AccountInfo = db_call!(
         pool = &app.pool,
         query = ONE ROW "SELECT * FROM get_account_info($1)",
         binds = [user_id]
-    );
+    )?;
 
-    match result {
-        Ok(info) => HttpResponse::Ok().json(info),
-        Err(AuthError::AccountNotFound) => HttpResponse::Unauthorized().json(serde_json::json!({
-            "error": "account_not_found",
-            "message": "An account with given ID does not exists."
-        })),
-        Err(_) => HttpResponse::InternalServerError().finish(),
-    }
+    Ok(HttpResponse::Ok().json(account_info))
 }
