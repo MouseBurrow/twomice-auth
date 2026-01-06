@@ -1,9 +1,9 @@
 use crate::errors::AuthError;
 use crate::password_utils::verify_password;
-use actix_web::cookie::{Cookie, SameSite};
 use actix_web::{post, web, HttpResponse};
 use config::app_data::AppData;
 use config::app_envs::AppEnvs;
+use custom_headers::session_token::SessionToken;
 use easy_db::db_call;
 use serde::Deserialize;
 use uuid::Uuid;
@@ -41,15 +41,10 @@ pub async fn login(
         binds = [user_id]
     )?;
 
-    let cookie = Cookie::build("session_token", session_token)
-        .http_only(true)
-        .secure(app.config.app_env != AppEnvs::DEV)
-        .same_site(SameSite::Lax)
-        .path("/")
-        .max_age(time::Duration::days(30))
-        .finish();
-
     Ok(HttpResponse::Ok()
-        .cookie(cookie)
+        .cookie(SessionToken::create_cookie(
+            app.config.app_env != AppEnvs::DEV,
+            session_token,
+        ))
         .json(serde_json::json!({ "ok": true })))
 }
