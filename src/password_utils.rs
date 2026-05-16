@@ -21,3 +21,28 @@ pub fn verify_password(password: &str, hash: String) -> Result<(), password_hash
     let argon2_def = Argon2::new(ARGON2_ALGORITHM, ARGON2_VERSION, ARGON2_PARAMS);
     argon2_def.verify_password(password.as_bytes(), &argon2_hash)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hash_and_verify_correct_password() {
+        let password = "correct-horse-battery-staple";
+        let hash = hash_password(password).unwrap();
+        assert!(verify_password(password, hash).is_ok());
+    }
+
+    #[test]
+    fn verify_incorrect_password_fails() {
+        let hash = hash_password("real-password").unwrap();
+        assert!(verify_password("wrong-password", hash).is_err());
+    }
+
+    #[test]
+    fn hashes_are_different_each_time() {
+        let a = hash_password("same-password").unwrap();
+        let b = hash_password("same-password").unwrap();
+        assert_ne!(a, b);
+    }
+}
