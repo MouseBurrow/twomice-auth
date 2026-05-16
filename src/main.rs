@@ -1,17 +1,18 @@
 mod errors;
 pub(crate) mod password_utils;
 mod routes;
+pub(crate) mod service;
 
-use crate::routes::account::account;
-use crate::routes::login::login;
-use crate::routes::logout::logout;
-use crate::routes::signup::signup;
-use crate::routes::validate::validate;
 use axum::routing::{get, post};
 use axum::Router;
 use config::app_data::AppData;
 use config::config::Config;
 use config::logger;
+use routes::account::account;
+use routes::login::login;
+use routes::logout::logout;
+use routes::signup::signup;
+use routes::validate::validate;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
