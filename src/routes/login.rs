@@ -1,24 +1,26 @@
 use crate::errors::AuthError;
 use crate::password_utils::verify_password;
-use actix_web::{post, web, HttpResponse};
+use axum::extract::State;
+use axum::http::header::{HeaderMap, HeaderValue, SET_COOKIE};
+use axum::Json;
 use config::app_data::AppData;
 use config::app_envs::AppEnvs;
 use custom_headers::session_token::SessionToken;
 use easy_db::db_call;
 use serde::Deserialize;
+use serde_json::json;
 use uuid::Uuid;
 
 #[derive(Deserialize)]
-struct LoginBody {
+pub struct LoginBody {
     pub username: String,
     pub password: String,
 }
 
-#[post("/login")]
 pub async fn login(
-    app: web::Data<AppData>,
-    body: web::Json<LoginBody>,
-) -> Result<HttpResponse, AuthError> {
+    State(app): State<AppData>,
+    Json(body): Json<LoginBody>,
+) -> Result<(HeaderMap, Json<serde_json::Value>), AuthError> {
     let stored_hash: String = db_call!(
         pool = &app.pool,
         query = ONE COLUMN "SELECT get_password_hash($1)",
@@ -41,10 +43,11 @@ pub async fn login(
         binds = [user_id]
     )?;
 
-    Ok(HttpResponse::Ok()
-        .cookie(SessionToken::create_cookie(
-            app.config.app_env != AppEnvs::DEV,
-            session_token,
-        ))
-        .json(serde_json::json!({ "ok": true })))
+    let secure = app.config.app_env != AppEnvs::DEV;
+    let cookie = SessionToken::cookie_value(secure, session_token);
+
+    let mut headers = HeaderMap::new();
+    headers.insert(SET_COOKIE, HeaderValue::from_str(&cookie).unwrap());
+
+    Ok((headers, Json(json!({ "ok": true }))))
 }

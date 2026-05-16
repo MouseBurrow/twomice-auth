@@ -1,24 +1,27 @@
 use crate::errors::AuthError;
 use crate::password_utils::hash_password;
-use actix_web::{post, web, HttpResponse};
+use axum::extract::State;
+use axum::http::header::{HeaderMap, HeaderValue, SET_COOKIE};
+use axum::Json;
 use config::app_data::AppData;
 use config::app_envs::AppEnvs;
 use custom_headers::session_token::SessionToken;
 use easy_db::db_call;
 use serde::Deserialize;
+use serde_json::json;
 
 #[derive(Deserialize)]
-struct SignBody {
+pub struct SignBody {
     pub username: String,
     pub password: String,
 }
 
-#[post("/signup")]
 pub async fn signup(
-    app: web::Data<AppData>,
-    body: web::Json<SignBody>,
-) -> Result<HttpResponse, AuthError> {
-    let password_hash = hash_password(&body.password).map_err(|_| AuthError::PasswordHashFailed)?;
+    State(app): State<AppData>,
+    Json(body): Json<SignBody>,
+) -> Result<(HeaderMap, Json<serde_json::Value>), AuthError> {
+    let password_hash =
+        hash_password(&body.password).map_err(|_| AuthError::PasswordHashFailed)?;
 
     let token: String = db_call!(
         pool = &app.pool,
@@ -26,10 +29,11 @@ pub async fn signup(
         binds = [&body.username, password_hash]
     )?;
 
-    Ok(HttpResponse::Ok()
-        .cookie(SessionToken::create_cookie(
-            app.config.app_env != AppEnvs::DEV,
-            token,
-        ))
-        .json(serde_json::json!({ "ok": true })))
+    let secure = app.config.app_env != AppEnvs::DEV;
+    let cookie = SessionToken::cookie_value(secure, token);
+
+    let mut headers = HeaderMap::new();
+    headers.insert(SET_COOKIE, HeaderValue::from_str(&cookie).unwrap());
+
+    Ok((headers, Json(json!({ "ok": true }))))
 }

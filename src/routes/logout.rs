@@ -1,31 +1,27 @@
 use crate::errors::AuthError;
-use actix_web::cookie::{Cookie, SameSite};
-use actix_web::{post, web, HttpResponse};
+use axum::extract::State;
+use axum::http::header::{HeaderMap, HeaderValue, SET_COOKIE};
+use axum::Json;
 use config::app_data::AppData;
 use config::app_envs::AppEnvs;
 use custom_headers::session_token::SessionToken;
 use easy_db::db_call;
+use serde_json::json;
 
-#[post("/logout")]
 pub async fn logout(
-    app: web::Data<AppData>,
+    State(app): State<AppData>,
     session_token: SessionToken,
-) -> Result<HttpResponse, AuthError> {
+) -> Result<(HeaderMap, Json<serde_json::Value>), AuthError> {
     let _: () = db_call!(
         pool = &app.pool,
         query = ONE COLUMN "SELECT logout_session($1)",
         binds = [session_token]
     )?;
 
-    let cookie = Cookie::build("session_token", "")
-        .http_only(true)
-        .secure(app.config.app_env != AppEnvs::DEV)
-        .same_site(SameSite::Lax)
-        .path("/")
-        .max_age(time::Duration::seconds(0))
-        .finish();
+    let cookie = SessionToken::clear_cookie_value(app.config.app_env != AppEnvs::DEV);
 
-    Ok(HttpResponse::Ok()
-        .cookie(cookie)
-        .json(serde_json::json!({"ok": true})))
+    let mut headers = HeaderMap::new();
+    headers.insert(SET_COOKIE, HeaderValue::from_str(&cookie).unwrap());
+
+    Ok((headers, Json(json!({"ok": true}))))
 }
