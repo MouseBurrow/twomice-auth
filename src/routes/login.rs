@@ -26,13 +26,12 @@ pub async fn login(
         return Err(AuthError::InvalidPassword);
     }
 
-    let user_id = sqlx::query_scalar::<_, uuid::Uuid>(
-        "SELECT id FROM accounts WHERE username = $1",
-    )
-    .bind(&body.username)
-    .fetch_one(&app.pool)
-    .await
-    .map_err(easy_errors::map_sqlx_error::<AuthError>)?;
+    let user_id =
+        sqlx::query_scalar::<_, uuid::Uuid>("SELECT id FROM accounts WHERE username = $1")
+            .bind(&body.username)
+            .fetch_one(&app.pool)
+            .await
+            .map_err(easy_errors::map_sqlx_error::<AuthError>)?;
 
     let session_token = service::create_session(&app.pool, user_id).await?;
 

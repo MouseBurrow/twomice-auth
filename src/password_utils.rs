@@ -1,7 +1,7 @@
 use argon2::{
-    password_hash, password_hash::{rand_core::OsRng, SaltString}, Algorithm, Argon2, Params, PasswordHash, PasswordHasher,
-    PasswordVerifier,
-    Version,
+    password_hash,
+    password_hash::{rand_core::OsRng, SaltString},
+    Algorithm, Argon2, Params, PasswordHash, PasswordHasher, PasswordVerifier, Version,
 };
 
 const ARGON2_ALGORITHM: Algorithm = Algorithm::Argon2id;

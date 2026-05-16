@@ -15,11 +15,12 @@ pub struct AccountInfo {
 }
 
 pub async fn get_password_hash(pool: &Pool<Postgres>, username: &str) -> Result<String, AuthError> {
-    let hash: Option<String> = sqlx::query_scalar("SELECT password_hash FROM accounts WHERE username = $1")
-        .bind(username)
-        .fetch_optional(pool)
-        .await
-        .map_err(map_sqlx_error)?;
+    let hash: Option<String> =
+        sqlx::query_scalar("SELECT password_hash FROM accounts WHERE username = $1")
+            .bind(username)
+            .fetch_optional(pool)
+            .await
+            .map_err(map_sqlx_error)?;
 
     hash.ok_or(AuthError::UserNotFound)
 }

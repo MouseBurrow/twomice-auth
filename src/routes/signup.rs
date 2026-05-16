@@ -20,8 +20,7 @@ pub async fn signup(
     State(app): State<AppData>,
     Json(body): Json<SignBody>,
 ) -> Result<(HeaderMap, Json<serde_json::Value>), AuthError> {
-    let password_hash =
-        hash_password(&body.password).map_err(|_| AuthError::PasswordHashFailed)?;
+    let password_hash = hash_password(&body.password).map_err(|_| AuthError::PasswordHashFailed)?;
 
     let token = service::create_account(&app.pool, &body.username, &password_hash).await?;
 
