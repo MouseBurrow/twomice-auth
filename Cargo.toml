@@ -8,9 +8,9 @@ anyhow = "1.0.100"
 argon2 = "0.5.0"
 axum = "0.7"
 chrono = { version = "0.4.42", features = ["serde"] }
-config = { git = "https://github.com/MouseBurrow/twomice-libs.git", subdir = "config" }
-custom_headers = { git = "https://github.com/MouseBurrow/twomice-libs.git", subdir = "custom_headers" }
-easy_errors = { git = "https://github.com/MouseBurrow/twomice-libs.git", subdir = "easy_errors" }
+config = { git = "https://github.com/MouseBurrow/twomice-libs.git" }
+custom_headers = { git = "https://github.com/MouseBurrow/twomice-libs.git" }
+easy_errors = { git = "https://github.com/MouseBurrow/twomice-libs.git" }
 hex = "0.4"
 http = "1"
 rand = "0.8"
