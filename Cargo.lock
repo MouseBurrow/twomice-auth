@@ -307,11 +307,13 @@ dependencies = [
 [[package]]
 name = "config"
 version = "0.1.0"
-source = "git+https://github.com/MouseBurrow/twomice-libs.git#5ad21766c509e98d22aa16305f04cefea7926374"
 dependencies = [
  "anyhow",
+ "axum",
  "env_logger",
+ "serde_json",
  "sqlx",
+ "tokio",
 ]
 
 [[package]]
@@ -378,10 +380,11 @@ dependencies = [
 [[package]]
 name = "custom_headers"
 version = "0.1.0"
-source = "git+https://github.com/MouseBurrow/twomice-libs.git#5ad21766c509e98d22aa16305f04cefea7926374"
 dependencies = [
  "axum",
  "http",
+ "serde",
+ "serde_json",
  "sqlx",
  "uuid",
 ]
@@ -429,7 +432,6 @@ checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 [[package]]
 name = "easy_errors"
 version = "0.1.0"
-source = "git+https://github.com/MouseBurrow/twomice-libs.git#5ad21766c509e98d22aa16305f04cefea7926374"
 dependencies = [
  "axum",
  "http",
