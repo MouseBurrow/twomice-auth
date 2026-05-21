@@ -50,7 +50,9 @@ jobs:
               cd services/auth
               git fetch origin
               git checkout "$BRANCH"
-              git pull origin "$BRANCH"
+              if [[ "${{ github.ref_type }}" != "tag" ]]; then
+                git pull origin "$BRANCH"
+              fi
             else
               mkdir -p services && cd services
               git clone --branch "$BRANCH" https://github.com/MouseBurrow/twomice-auth.git auth
@@ -73,4 +75,5 @@ jobs:
             docker push ghcr.io/mouseburrow/twomice-auth:$TAG
             rm -rf /tmp/docker-build
             cd /home/admin/twomice/deploy
+            docker compose -f docker-compose.${ENV_NAME}.yaml pull auth
             docker compose -f docker-compose.${ENV_NAME}.yaml up -d auth
