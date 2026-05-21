@@ -15,5 +15,8 @@ pub async fn logout(
 
     let cookie = SessionToken::clear_cookie_value(app.config.app_env != AppEnvs::DEV);
 
-    Ok(SessionToken::set_cookie_response(cookie, json!({ "ok": true })))
+    Ok(SessionToken::set_cookie_response(
+        cookie,
+        json!({ "ok": true }),
+    ))
 }

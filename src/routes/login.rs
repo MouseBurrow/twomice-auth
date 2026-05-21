@@ -25,5 +25,8 @@ pub async fn login(
     let secure = app.config.app_env != AppEnvs::DEV;
     let cookie = SessionToken::cookie_value(secure, session_token);
 
-    Ok(SessionToken::set_cookie_response(cookie, json!({ "ok": true })))
+    Ok(SessionToken::set_cookie_response(
+        cookie,
+        json!({ "ok": true }),
+    ))
 }

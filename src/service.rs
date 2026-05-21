@@ -29,12 +29,11 @@ pub async fn get_user_id_by_username(
     pool: &Pool<Postgres>,
     username: &str,
 ) -> Result<Uuid, AuthError> {
-    let user_id: Option<Uuid> =
-        sqlx::query_scalar("SELECT id FROM accounts WHERE username = $1")
-            .bind(username)
-            .fetch_optional(pool)
-            .await
-            .map_err(map_sqlx_error::<AuthError>)?;
+    let user_id: Option<Uuid> = sqlx::query_scalar("SELECT id FROM accounts WHERE username = $1")
+        .bind(username)
+        .fetch_optional(pool)
+        .await
+        .map_err(map_sqlx_error::<AuthError>)?;
     user_id.ok_or(AuthError::UserNotFound)
 }
 

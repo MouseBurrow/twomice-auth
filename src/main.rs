@@ -14,11 +14,14 @@ use routes::validate::validate;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    server::serve("auth", Router::new()
-        .route("/login", post(login))
-        .route("/signup", post(signup))
-        .route("/logout", post(logout))
-        .route("/validate", post(validate))
-        .route("/account", get(account))
-    ).await
+    server::serve(
+        "auth",
+        Router::new()
+            .route("/login", post(login))
+            .route("/signup", post(signup))
+            .route("/logout", post(logout))
+            .route("/validate", post(validate))
+            .route("/account", get(account)),
+    )
+    .await
 }
